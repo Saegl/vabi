@@ -102,19 +102,24 @@ a helper script is provided to make this easier: `./bin/download-theme NAME URL`
 to get the most out of babi's built in keyboard shortcuts, a few settings must
 be changed on macos with Terminal.app:
 
-- in **System Preferences**: **Keyboard** > **Shortcuts** >
-  **Mission Control**: disable or rebind "Move left a space" and
-  "Move right a space" (the defaults `⌃ →` and `⌃ ←` conflict)
+- in **System Preferences**: **Keyboard** > **Keyboard Shortcuts** >
+  **Mission Control**: disable or rebind `⌃ →`, `⌃ ←`, `^ ↑`, `^ ↓`
 - in **Terminal.app**: **Terminal** > **Preferences** > **Profiles** >
   **Keyboard**:
     - check **Use Option as Meta key**
     - ensure the following keys are enabled:
+        - `⌃ ↑`: `\033[1;5A`
+        - `⌃ ↓`: `\033[1;5B`
         - `⌃ →`: `\033[1;5C`
         - `⌃ ←`: `\033[1;5D`
         - `⇧ ↑`: `\033[1;2A`
         - `⇧ ↓`: `\033[1;2B`
         - `⇧ →`: `\033[1;2C`
         - `⇧ ←`: `\033[1;2D`
+        - `^ ⇧ ↑`: `\033[1;6A`
+        - `^ ⇧ ↓`: `\033[1;6B`
+        - `^ ⇧ →`: `\033[1;6C`
+        - `^ ⇧ ←`: `\033[1;6D`
 
 ## demos
 
