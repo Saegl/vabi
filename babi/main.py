@@ -6,6 +6,7 @@ import os
 import re
 import signal
 import sys
+import typing
 from collections.abc import Sequence
 
 from babi.buf import Buf
@@ -23,6 +24,10 @@ POSITION_RE = re.compile(r"^\+-?\d+$")
 LOGGING_FILE = open("babi_logging.txt", "w")
 
 
+def log(*args: typing.Any, **kwargs: typing.Any) -> None:
+    print(*args, **kwargs, flush=True, file=LOGGING_FILE)
+
+
 def _edit(screen: Screen, stdin: str) -> EditResult:
     screen.file.ensure_loaded(screen.status, screen.layout.file, stdin)
 
@@ -32,7 +37,7 @@ def _edit(screen: Screen, stdin: str) -> EditResult:
         screen.file.move_cursor(screen.stdscr, screen.layout.file)
 
         key = screen.get_char()
-        print("Keyname", key.keyname, flush=True, file=LOGGING_FILE)
+        log("Keyname", key.keyname)
         if key.keyname in File.DISPATCH:
             File.DISPATCH[key.keyname](screen.file, screen.layout.file)
         elif key.keyname in Screen.DISPATCH:
@@ -40,8 +45,19 @@ def _edit(screen: Screen, stdin: str) -> EditResult:
             if isinstance(ret, EditResult):
                 return ret
         elif key.keyname == b"STRING":
+            log("We are last branch")
             assert isinstance(key.wch, str), key.wch
-            screen.file.c(key.wch, screen.layout.file)
+
+            if key.wch == "k":
+                File.up(screen.file, screen.layout.file)
+            elif key.wch == "j":
+                File.down(screen.file, screen.layout.file)
+            elif key.wch == "h":
+                File.left(screen.file, screen.layout.file)
+            elif key.wch == "l":
+                File.right(screen.file, screen.layout.file)
+            else:
+                screen.file.c(key.wch, screen.layout.file)
         else:
             screen.status.update(f"unknown key: {key}")
 
