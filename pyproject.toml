@@ -1,0 +1,14 @@
+[project]
+name = "babi"
+version = "1.6.1"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14.3"
+dependencies = [
+    "babi-grammars>=0.0.72",
+    "identify>=2.6.19",
+    "onigurumacffi>=0.0.18",
+]
+
+[project.scripts]
+babi = "babi.main:main"
