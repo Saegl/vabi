@@ -835,6 +835,14 @@ class Screen:
     def file_right(self) -> None:
         self.file.right(self.layout.file)
 
+    def open_new_line_above(self) -> None:
+        self.file.open_new_line_above(self.layout.file)
+        self.set_insert()
+
+    def open_new_line_below(self) -> None:
+        self.file.open_new_line_below(self.layout.file)
+        self.set_insert()
+
     NORMAL_KEY_DISPATCH = {
         b"RETHEME": retheme,
         b"KEY_RESIZE": resize,
@@ -868,6 +876,8 @@ class Screen:
         "l": file_right,
         "i": set_insert,
         ":": command,
+        "O": open_new_line_above,
+        "o": open_new_line_below,
     }
 
     INSERT_KEY_DISPATCH = {

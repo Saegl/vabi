@@ -665,6 +665,19 @@ class File:
         self.buf.down(dim)
         self.buf.x = 0
 
+    @edit_action("open new line above", final=False)
+    @clear_selection
+    def open_new_line_above(self, dim: Dim) -> None:
+        self.buf.insert(self.buf.y, "")
+        self.buf.x = 0
+
+    @edit_action("open new line below", final=False)
+    @clear_selection
+    def open_new_line_below(self, dim: Dim) -> None:
+        self.buf.insert(self.buf.y + 1, "")
+        self.buf.down(dim)
+        self.buf.x = 0
+
     @edit_action("indent selection", final=True)
     def _indent_selection(self, dim: Dim) -> None:
         assert self.selection.start is not None
