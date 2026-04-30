@@ -6,7 +6,6 @@ import os
 import re
 import signal
 import sys
-import typing
 from collections.abc import Sequence
 
 from babi.buf import Buf
@@ -17,15 +16,10 @@ from babi.screen import EditResult
 from babi.screen import FileInfo
 from babi.screen import make_stdscr
 from babi.screen import Screen
+from babi.log_util import log
 
 CONSOLE = "CONIN$" if sys.platform == "win32" else "/dev/tty"
 POSITION_RE = re.compile(r"^\+-?\d+$")
-
-LOGGING_FILE = open("babi_logging.txt", "w")
-
-
-def log(*args: typing.Any, **kwargs: typing.Any) -> None:
-    print(*args, **kwargs, flush=True, file=LOGGING_FILE)
 
 
 def _edit(screen: Screen, stdin: str) -> EditResult:
