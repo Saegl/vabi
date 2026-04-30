@@ -12,3 +12,15 @@ dependencies = [
 
 [project.scripts]
 babi = "babi.main:main"
+
+[dependency-groups]
+dev = [
+    "covdefaults>=2.3.0",
+    "coverage>=7.13.5",
+    "hecate",
+    "pytest>=9.0.3",
+    "remote-pdb>=2.1.0",
+]
+
+[tool.uv.sources]
+hecate = { git = "https://github.com/asottile/hecate", rev = "875567f" }
