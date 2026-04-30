@@ -20,6 +20,8 @@ from babi.screen import Screen
 CONSOLE = 'CONIN$' if sys.platform == 'win32' else '/dev/tty'
 POSITION_RE = re.compile(r'^\+-?\d+$')
 
+LOGGING_FILE = open('babi_logging.txt', 'w')
+
 
 def _edit(screen: Screen, stdin: str) -> EditResult:
     screen.file.ensure_loaded(screen.status, screen.layout.file, stdin)
@@ -30,6 +32,7 @@ def _edit(screen: Screen, stdin: str) -> EditResult:
         screen.file.move_cursor(screen.stdscr, screen.layout.file)
 
         key = screen.get_char()
+        print('Keyname', key.keyname, flush=True, file=LOGGING_FILE)
         if key.keyname in File.DISPATCH:
             File.DISPATCH[key.keyname](screen.file, screen.layout.file)
         elif key.keyname in Screen.DISPATCH:
