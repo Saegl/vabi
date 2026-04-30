@@ -12,7 +12,7 @@ from babi.color_manager import ColorManager
 from babi.fdict import FDict
 from babi.resources.default_theme import DEFAULT_THEME
 
-A_ITALIC = getattr(curses, 'A_ITALIC', 0x80000000)  # not always present
+A_ITALIC = getattr(curses, "A_ITALIC", 0x80000000)  # not always present
 
 
 class Style(NamedTuple):
@@ -25,10 +25,10 @@ class Style(NamedTuple):
     def attr(self, color_manager: ColorManager) -> int:
         pair = color_manager.color_pair(self.fg, self.bg)
         return (
-            curses.color_pair(pair) |
-            self.b * curses.A_BOLD |
-            self.i * A_ITALIC |
-            self.u * curses.A_UNDERLINE
+            curses.color_pair(pair)
+            | self.b * curses.A_BOLD
+            | self.i * A_ITALIC
+            | self.u * curses.A_UNDERLINE
         )
 
     @classmethod
@@ -52,16 +52,16 @@ class PartialStyle(NamedTuple):
     @classmethod
     def from_dct(cls, dct: dict[str, Any]) -> PartialStyle:
         kv = cls()._asdict()
-        if 'foreground' in dct:
-            kv['fg'] = Color.parse(dct['foreground'])
-        if 'background' in dct:
-            kv['bg'] = Color.parse(dct['background'])
-        if dct.get('fontStyle') == 'bold':
-            kv['b'] = True
-        elif dct.get('fontStyle') == 'italic':
-            kv['i'] = True
-        elif dct.get('fontStyle') == 'underline':
-            kv['u'] = True
+        if "foreground" in dct:
+            kv["fg"] = Color.parse(dct["foreground"])
+        if "background" in dct:
+            kv["bg"] = Color.parse(dct["background"])
+        if dct.get("fontStyle") == "bold":
+            kv["b"] = True
+        elif dct.get("fontStyle") == "italic":
+            kv["i"] = True
+        elif dct.get("fontStyle") == "underline":
+            kv["u"] = True
         return cls(**kv)
 
 
@@ -71,9 +71,7 @@ class TrieNode(NamedTuple):
 
     @classmethod
     def from_dct(cls, dct: dict[str, Any]) -> TrieNode:
-        children = FDict({
-            k: TrieNode.from_dct(v) for k, v in dct['children'].items()
-        })
+        children = FDict({k: TrieNode.from_dct(v) for k, v in dct["children"].items()})
         return cls(PartialStyle.from_dct(dct), children)
 
 
@@ -89,7 +87,7 @@ class Theme:
         else:
             style = self.select(scope[:-1])._asdict()
             node = self.rules
-            for part in scope[-1].split('.'):
+            for part in scope[-1].split("."):
                 if part not in node.children:
                     break
                 else:
@@ -101,46 +99,46 @@ class Theme:
     def from_dct(cls, data: dict[str, Any]) -> Theme:
         default = Style.blank()._asdict()
 
-        for k in ('foreground', 'editor.foreground'):
-            if k in data.get('colors', {}):
-                default['fg'] = Color.parse(data['colors'][k])
+        for k in ("foreground", "editor.foreground"):
+            if k in data.get("colors", {}):
+                default["fg"] = Color.parse(data["colors"][k])
                 break
 
-        for k in ('background', 'editor.background'):
-            if k in data.get('colors', {}):
-                default['bg'] = Color.parse(data['colors'][k])
+        for k in ("background", "editor.background"):
+            if k in data.get("colors", {}):
+                default["bg"] = Color.parse(data["colors"][k])
                 break
 
-        root: dict[str, Any] = {'children': {}}
-        rules = data.get('tokenColors', []) + data.get('settings', [])
+        root: dict[str, Any] = {"children": {}}
+        rules = data.get("tokenColors", []) + data.get("settings", [])
         for rule in rules:
-            if 'scope' not in rule:
-                scopes = ['']
-            elif rule['scope'] == '':
-                scopes = ['']
-            elif isinstance(rule['scope'], str):
+            if "scope" not in rule:
+                scopes = [""]
+            elif rule["scope"] == "":
+                scopes = [""]
+            elif isinstance(rule["scope"], str):
                 scopes = [
                     s.strip()
                     # some themes have a buggy trailing/leading comma
-                    for s in rule['scope'].strip().strip(',').split(',')
+                    for s in rule["scope"].strip().strip(",").split(",")
                     if s.strip()
                 ]
             else:
-                scopes = rule['scope']
+                scopes = rule["scope"]
 
             for scope in scopes:
-                if ' ' in scope:
+                if " " in scope:
                     # TODO: implement parent scopes
                     continue
-                elif scope == '':
-                    PartialStyle.from_dct(rule['settings']).overlay_on(default)
+                elif scope == "":
+                    PartialStyle.from_dct(rule["settings"]).overlay_on(default)
                     continue
 
                 cur = root
-                for part in scope.split('.'):
-                    cur = cur['children'].setdefault(part, {'children': {}})
+                for part in scope.split("."):
+                    cur = cur["children"].setdefault(part, {"children": {}})
 
-                cur.update(rule['settings'])
+                cur.update(rule["settings"])
 
         return cls(Style(**default), TrieNode.from_dct(root))
 
@@ -149,5 +147,5 @@ class Theme:
         if not os.path.exists(filename):
             return cls.from_dct(DEFAULT_THEME)
         else:
-            with open(filename, encoding='UTF-8') as f:
+            with open(filename, encoding="UTF-8") as f:
                 return cls.from_dct(json.load(f))

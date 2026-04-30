@@ -8,7 +8,7 @@ from babi.prompt import PromptResult
 
 class Status:
     def __init__(self) -> None:
-        self._status = ''
+        self._status = ""
         self._action_counter = -1
 
     def update(self, status: str) -> None:
@@ -16,13 +16,13 @@ class Status:
         self._action_counter = 25
 
     def clear(self) -> None:
-        self._status = ''
+        self._status = ""
 
     def draw(self, stdscr: curses.window, dim: Dim) -> None:
         if dim.y > 0 or self._status:
-            stdscr.insstr(dim.y, 0, ' ' * dim.width)
+            stdscr.insstr(dim.y, 0, " " * dim.width)
             if self._status:
-                status = f' {self._status} '
+                status = f" {self._status} "
                 x = (dim.width - len(status)) // 2
                 if x < 0:
                     x = 0
@@ -39,5 +39,5 @@ class Status:
             self.clear()
 
     def cancelled(self) -> PromptResult:
-        self.update('cancelled')
+        self.update("cancelled")
         return PromptResult.CANCELLED

@@ -10,7 +10,7 @@ from babi.horizontal_scrolling import scrolled_line
 if TYPE_CHECKING:
     from babi.main import Screen  # XXX: circular
 
-PromptResult = enum.Enum('PromptResult', 'CANCELLED')
+PromptResult = enum.Enum("PromptResult", "CANCELLED")
 
 
 class Prompt:
@@ -32,14 +32,14 @@ class Prompt:
     def _render_prompt(self, *, base: str | None = None) -> None:
         base = base or self._prompt
         if not base or self._screen.layout.status.width < 7:
-            prompt_s = ''
+            prompt_s = ""
         elif len(base) > self._screen.layout.status.width - 6:
-            prompt_s = f'{base[:self._screen.layout.status.width - 7]}…: '
+            prompt_s = f"{base[: self._screen.layout.status.width - 7]}…: "
         else:
-            prompt_s = f'{base}: '
+            prompt_s = f"{base}: "
         width = self._screen.layout.status.width - len(prompt_s)
         line = scrolled_line(self._s, self._x, width)
-        cmd = f'{prompt_s}{line}'
+        cmd = f"{prompt_s}{line}"
         prompt_line = self._screen.layout.status.y
         self._screen.stdscr.insstr(prompt_line, 0, cmd, curses.A_REVERSE)
         x = len(prompt_s) + self._x - line_x(self._x, width)
@@ -85,15 +85,15 @@ class Prompt:
 
     def _backspace(self) -> None:
         if self._x > 0:
-            self._s = self._s[:self._x - 1] + self._s[self._x:]
+            self._s = self._s[: self._x - 1] + self._s[self._x :]
             self._x -= 1
 
     def _delete(self) -> None:
         if self._x < len(self._s):
-            self._s = self._s[:self._x] + self._s[self._x + 1:]
+            self._s = self._s[: self._x] + self._s[self._x + 1 :]
 
     def _cut_to_end(self) -> None:
-        self._s = self._s[:self._x]
+        self._s = self._s[: self._x]
 
     def _resize(self) -> None:
         self._screen.resize()
@@ -110,30 +110,30 @@ class Prompt:
         return failed, idx
 
     def _reverse_search(self) -> None | str | PromptResult:
-        reverse_s = ''
+        reverse_s = ""
         idx = self._y
         while True:
             fail, idx = self._check_failed(idx, reverse_s)
 
             if fail:
-                base = f'{self._prompt}(failed reverse-search)`{reverse_s}`'
+                base = f"{self._prompt}(failed reverse-search)`{reverse_s}`"
             else:
-                base = f'{self._prompt}(reverse-search)`{reverse_s}`'
+                base = f"{self._prompt}(reverse-search)`{reverse_s}`"
 
             self._render_prompt(base=base)
 
             key = self._screen.get_char()
-            if key.keyname == b'KEY_RESIZE':
+            if key.keyname == b"KEY_RESIZE":
                 self._screen.resize()
-            elif key.keyname == b'KEY_BACKSPACE':
+            elif key.keyname == b"KEY_BACKSPACE":
                 reverse_s = reverse_s[:-1]
-            elif key.keyname == b'^R':
+            elif key.keyname == b"^R":
                 idx = max(0, idx - 1)
-            elif key.keyname == b'^C':
+            elif key.keyname == b"^C":
                 return self._screen.status.cancelled()
-            elif key.keyname == b'^M':
+            elif key.keyname == b"^M":
                 return self._s
-            elif key.keyname == b'STRING':
+            elif key.keyname == b"STRING":
                 assert isinstance(key.wch, str), key.wch
                 for c in key.wch:
                     reverse_s += c
@@ -150,29 +150,29 @@ class Prompt:
 
     DISPATCH = {
         # movement
-        b'KEY_UP': _up,
-        b'KEY_DOWN': _down,
-        b'KEY_RIGHT': _right,
-        b'KEY_LEFT': _left,
-        b'KEY_HOME': _home,
-        b'^A': _home,
-        b'KEY_END': _end,
-        b'^E': _end,
-        b'kRIT5': _ctrl_right,
-        b'kLFT5': _ctrl_left,
+        b"KEY_UP": _up,
+        b"KEY_DOWN": _down,
+        b"KEY_RIGHT": _right,
+        b"KEY_LEFT": _left,
+        b"KEY_HOME": _home,
+        b"^A": _home,
+        b"KEY_END": _end,
+        b"^E": _end,
+        b"kRIT5": _ctrl_right,
+        b"kLFT5": _ctrl_left,
         # editing
-        b'KEY_BACKSPACE': _backspace,
-        b'KEY_DC': _delete,
-        b'^K': _cut_to_end,
+        b"KEY_BACKSPACE": _backspace,
+        b"KEY_DC": _delete,
+        b"^K": _cut_to_end,
         # misc
-        b'KEY_RESIZE': _resize,
-        b'^R': _reverse_search,
-        b'^M': _submit,
-        b'^C': _cancel,
+        b"KEY_RESIZE": _resize,
+        b"^R": _reverse_search,
+        b"^M": _submit,
+        b"^C": _cancel,
     }
 
     def _c(self, c: str) -> None:
-        self._s = self._s[:self._x] + c + self._s[self._x:]
+        self._s = self._s[: self._x] + c + self._s[self._x :]
         self._x += len(c)
 
     def run(self) -> PromptResult | str:
@@ -184,6 +184,6 @@ class Prompt:
                 ret = Prompt.DISPATCH[key.keyname](self)
                 if ret is not None:
                     return ret
-            elif key.keyname == b'STRING':
+            elif key.keyname == b"STRING":
                 assert isinstance(key.wch, str), key.wch
                 self._c(key.wch)

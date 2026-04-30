@@ -38,13 +38,13 @@ class FakeCurses:
     @contextlib.contextmanager
     def patch(cls, **kwargs):
         fake = cls(**kwargs)
-        with mock.patch.object(curses, 'COLORS', fake._n_colors, create=True):
+        with mock.patch.object(curses, "COLORS", fake._n_colors, create=True):
             with mock.patch.multiple(
-                    curses,
-                    can_change_color=fake._curses__can_change_color,
-                    color_pair=fake._curses__color_pair,
-                    init_color=fake._curses__init_color,
-                    init_pair=fake._curses__init_pair,
+                curses,
+                can_change_color=fake._curses__can_change_color,
+                color_pair=fake._curses__color_pair,
+                init_color=fake._curses__init_color,
+                init_pair=fake._curses__init_pair,
             ):
                 yield fake
 
@@ -54,7 +54,7 @@ class FakeScreen:
         self.attr = 0
 
     def bkgd(self, c, attr):
-        assert c == ' '
+        assert c == " "
         self.attr = attr
 
 
@@ -63,14 +63,16 @@ def stdscr():
     return FakeScreen()
 
 
-THEME = Theme.from_dct({
-    'colors': {'foreground': '#cccccc', 'background': '#333333'},
-    'tokenColors': [
-        {'scope': 'string', 'settings': {'foreground': '#009900'}},
-        {'scope': 'keyword', 'settings': {'background': '#000000'}},
-        {'scope': 'keyword', 'settings': {'fontStyle': 'bold'}},
-    ],
-})
+THEME = Theme.from_dct(
+    {
+        "colors": {"foreground": "#cccccc", "background": "#333333"},
+        "tokenColors": [
+            {"scope": "string", "settings": {"foreground": "#009900"}},
+            {"scope": "keyword", "settings": {"background": "#000000"}},
+            {"scope": "keyword", "settings": {"fontStyle": "bold"}},
+        ],
+    }
+)
 
 
 @pytest.fixture
@@ -82,10 +84,10 @@ def test_init_screen_low_color(stdscr, syntax):
     with FakeCurses.patch(n_colors=16, can_change_color=False) as fake_curses:
         syntax._init_screen(stdscr)
     assert syntax.color_manager.colors == {
-        Color.parse('#cccccc'): -1,
-        Color.parse('#333333'): -1,
-        Color.parse('#000000'): -1,
-        Color.parse('#009900'): -1,
+        Color.parse("#cccccc"): -1,
+        Color.parse("#333333"): -1,
+        Color.parse("#000000"): -1,
+        Color.parse("#009900"): -1,
     }
     assert syntax.color_manager.raw_pairs == {(-1, -1): 1}
     assert fake_curses.colors == {}
@@ -97,10 +99,10 @@ def test_init_screen_256_color(stdscr, syntax):
     with FakeCurses.patch(n_colors=256, can_change_color=False) as fake_curses:
         syntax._init_screen(stdscr)
     assert syntax.color_manager.colors == {
-        Color.parse('#cccccc'): 252,
-        Color.parse('#333333'): 236,
-        Color.parse('#000000'): 16,
-        Color.parse('#009900'): 28,
+        Color.parse("#cccccc"): 252,
+        Color.parse("#333333"): 236,
+        Color.parse("#000000"): 16,
+        Color.parse("#009900"): 28,
     }
     assert syntax.color_manager.raw_pairs == {(252, 236): 1}
     assert fake_curses.colors == {}
@@ -113,10 +115,10 @@ def test_init_screen_true_color(stdscr, syntax):
         syntax._init_screen(stdscr)
     # weird colors happened with low color numbers so it counts down from max
     assert syntax.color_manager.colors == {
-        Color.parse('#000000'): 255,
-        Color.parse('#009900'): 254,
-        Color.parse('#333333'): 253,
-        Color.parse('#cccccc'): 252,
+        Color.parse("#000000"): 255,
+        Color.parse("#009900"): 254,
+        Color.parse("#333333"): 253,
+        Color.parse("#cccccc"): 252,
     }
     assert syntax.color_manager.raw_pairs == {(252, 253): 1}
     assert fake_curses.colors == {
@@ -137,7 +139,7 @@ def test_lazily_instantiated_pairs(stdscr, syntax):
         assert len(syntax.color_manager.raw_pairs) == 1
         assert len(fake_curses.pairs) == 1
 
-        style = THEME.select(('string.python',))
+        style = THEME.select(("string.python",))
         attr = style.attr(syntax.color_manager)
         assert attr == 2 << 8
 
@@ -149,22 +151,24 @@ def test_style_attributes_applied(stdscr, syntax):
     with FakeCurses.patch(n_colors=256, can_change_color=False):
         syntax._init_screen(stdscr)
 
-        style = THEME.select(('keyword.python',))
+        style = THEME.select(("keyword.python",))
         attr = style.attr(syntax.color_manager)
         assert attr == 2 << 8 | curses.A_BOLD
 
 
 def test_syntax_highlight_cache_first_line(stdscr, make_grammars):
     with FakeCurses.patch(n_colors=256, can_change_color=False):
-        grammars = make_grammars({
-            'scopeName': 'source.demo',
-            'fileTypes': ['demo'],
-            'patterns': [{'match': r'\Aint', 'name': 'keyword'}],
-        })
+        grammars = make_grammars(
+            {
+                "scopeName": "source.demo",
+                "fileTypes": ["demo"],
+                "patterns": [{"match": r"\Aint", "name": "keyword"}],
+            }
+        )
         syntax = Syntax(grammars, THEME, ColorManager.make())
         syntax._init_screen(stdscr)
-        file_hl = syntax.file_highlighter('foo.demo', '')
-        file_hl.highlight_until(Buf(['int', 'int']), 2)
+        file_hl = syntax.file_highlighter("foo.demo", "")
+        file_hl.highlight_until(Buf(["int", "int"]), 2)
         assert file_hl.regions == [
             (HL(0, 3, curses.A_BOLD | 2 << 8),),
             (),

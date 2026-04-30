@@ -9,19 +9,19 @@ from babi import linting
 
 ErrorsByHook = tuple[tuple[str, tuple[linting.Error, ...]], ...]
 
-HOOK_ID_RE = re.compile('^- hook id: (.*)$')
+HOOK_ID_RE = re.compile("^- hook id: (.*)$")
 
 
 def _parse_pre_commit(s: str) -> ErrorsByHook:
     ret = []
-    current_hookid = ''
+    current_hookid = ""
     current_lines: list[str] = []
 
     def _push_current_hook_id() -> None:
         if not current_hookid:
             return
 
-        parsed = linting.parse_generic_output('\n'.join(current_lines))
+        parsed = linting.parse_generic_output("\n".join(current_lines))
         if parsed:
             ret.append((current_hookid, parsed))
 
@@ -46,8 +46,11 @@ class PreCommit:
     def _root_uncached(self, filename: str) -> str:
         return subprocess.check_output(
             (
-                'git', '-C', os.path.dirname(os.path.abspath(filename)),
-                'rev-parse', '--show-toplevel',
+                "git",
+                "-C",
+                os.path.dirname(os.path.abspath(filename)),
+                "rev-parse",
+                "--show-toplevel",
             ),
             text=True,
             stderr=subprocess.DEVNULL,
@@ -60,15 +63,18 @@ class PreCommit:
             return None  # not in a git repo!
 
         # no pre-commit config!
-        cfg = os.path.join(root, '.pre-commit-config.yaml')
+        cfg = os.path.join(root, ".pre-commit-config.yaml")
         if not os.path.exists(cfg):
             return None
 
         return (
-            'pre-commit', 'run',
-            '--color=never',
-            '--config', cfg,
-            '--files', filename,
+            "pre-commit",
+            "run",
+            "--color=never",
+            "--config",
+            cfg,
+            "--files",
+            filename,
         )
 
     def parse(self, filename: str, output: str) -> tuple[linting.Error, ...]:
@@ -79,7 +85,7 @@ class PreCommit:
 
         filename = _norm(filename)
         return tuple(
-            error._replace(msg=f'[{hook_id}] {error.msg}')
+            error._replace(msg=f"[{hook_id}] {error.msg}")
             for hook_id, errors in _parse_pre_commit(output)
             for error in errors
             if _norm(os.path.join(root, error.filename)) == filename

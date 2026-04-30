@@ -14,31 +14,31 @@ from babi.horizontal_scrolling import line_x
 from babi.horizontal_scrolling import scrolled_line
 from babi.horizontal_scrolling import wcwidth
 
-SetCallback = Callable[['Buf', int, str], None]
-DelCallback = Callable[['Buf', int, str], None]
-InsCallback = Callable[['Buf', int], None]
+SetCallback = Callable[["Buf", int, str], None]
+DelCallback = Callable[["Buf", int, str], None]
+InsCallback = Callable[["Buf", int], None]
 
 
 def _diff_codes(
-        a: list[str],
-        b: list[str],
+    a: list[str],
+    b: list[str],
 ) -> Generator[tuple[str, int, int, int, int]]:
     matcher = difflib.SequenceMatcher(a=a, b=b)
     for op, i1, i2, j1, j2 in reversed(matcher.get_opcodes()):
-        if op == 'replace':
+        if op == "replace":
             if i2 - i1 == j2 - j1:
                 yield op, i1, i2, j1, j2
             else:
-                yield 'delete', i1, i2, j1, j2
-                yield 'insert', i1, i1, j1, j2
-        elif op != 'equal':
+                yield "delete", i1, i2, j1, j2
+                yield "insert", i1, i1, j1, j2
+        elif op != "equal":
             yield op, i1, i2, j1, j2
 
 
 def _offsets(s: str, tab_size: int) -> tuple[int, ...]:
     ret = [0]
     for c in s:
-        if c == '\t':
+        if c == "\t":
             ret.append(ret[-1] + (tab_size - ret[-1] % tab_size))
         else:
             ret.append(ret[-1] + wcwidth(c))
@@ -89,9 +89,9 @@ class Buf:
 
     def __repr__(self) -> str:
         return (
-            f'{type(self).__name__}('
-            f'{self._lines!r}, x={self.x}, y={self.y}, file_y={self.file_y}'
-            f')'
+            f"{type(self).__name__}("
+            f"{self._lines!r}, x={self.x}, y={self.y}, file_y={self.file_y}"
+            f")"
         )
 
     def __bool__(self) -> bool:
@@ -152,24 +152,24 @@ class Buf:
 
     def replace_lines(self, lines: list[str]) -> None:
         for op, i1, i2, j1, j2 in _diff_codes(self._lines, lines):
-            if op == 'replace':
+            if op == "replace":
                 for i, j in zip(range(i1, i2), range(j1, j2)):
                     self[i] = lines[j]
-            elif op == 'delete':
+            elif op == "delete":
                 for i in reversed(range(i1, i2)):
                     del self[i]
-            elif op == 'insert':
+            elif op == "insert":
                 for j in reversed(range(j1, j2)):
                     self.insert(i1, lines[j])
             else:
-                raise AssertionError(f'{op} {self._lines} {lines} ???')
+                raise AssertionError(f"{op} {self._lines} {lines} ???")
 
     def restore_eof_invariant(self) -> None:
         """the file lines will always contain a blank empty string at the end'
         to simplify rendering.  call this whenever the last line may change
         """
-        if self[-1] != '':
-            self.append('')
+        if self[-1] != "":
+            self.append("")
 
     def set_tab_size(self, tab_size: int) -> None:
         self.tab_size = tab_size
@@ -292,13 +292,13 @@ class Buf:
     @property
     def tab_string(self) -> str:
         if self.expandtabs:
-            return ' ' * self.tab_size
+            return " " * self.tab_size
         else:
-            return '\t'
+            return "\t"
 
     def rendered_line(self, idx: int, dim: Dim) -> str:
         x = self._cursor_x if idx == self.y else 0
-        expanded = self._lines[idx].expandtabs(self.tab_size).lstrip('\ufeff')
+        expanded = self._lines[idx].expandtabs(self.tab_size).lstrip("\ufeff")
         return scrolled_line(expanded, x, dim.width)
 
     # movement
@@ -318,7 +318,7 @@ class Buf:
 
     def _scroll_amount(self, dim: Dim) -> int:
         # integer round up without banker's rounding (so 1/2 => 1 instead of 0)
-        return int((dim.height + 1) / 2 + .5)
+        return int((dim.height + 1) / 2 + 0.5)
 
     def up(self, dim: Dim) -> None:
         if self.y > 0:

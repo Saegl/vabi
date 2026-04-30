@@ -29,13 +29,13 @@ def _build(colors: list[tuple[Color, int]], depth: int = 0) -> KD | None:
     return KD(
         *colors[pivot],
         _build(colors[:pivot], depth=depth + 1),
-        _build(colors[pivot + 1:], depth=depth + 1),
+        _build(colors[pivot + 1 :], depth=depth + 1),
     )
 
 
 def nearest(color: Color, colors: KD | None) -> int:
     best = 0
-    dist = 2 ** 32
+    dist = 2**32
 
     def _search(kd: KD | None, *, depth: int) -> None:
         nonlocal best
@@ -52,11 +52,11 @@ def nearest(color: Color, colors: KD | None) -> int:
         diff = color[axis] - kd.color[axis]
         if diff > 0:
             _search(kd.right, depth=depth + 1)
-            if diff ** 2 < dist:
+            if diff**2 < dist:
                 _search(kd.left, depth=depth + 1)
         else:
             _search(kd.left, depth=depth + 1)
-            if diff ** 2 < dist:
+            if diff**2 < dist:
                 _search(kd.right, depth=depth + 1)
 
     _search(colors, depth=0)

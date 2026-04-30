@@ -37,19 +37,19 @@ from babi.status import Status
 if TYPE_CHECKING:
     from babi.main import Screen  # XXX: circular
 
-P = ParamSpec('P')
-R = TypeVar('R')
-FileMethod = Callable[Concatenate['File', P], R]
+P = ParamSpec("P")
+R = TypeVar("R")
+FileMethod = Callable[Concatenate["File", P], R]
 
-WS_RE = re.compile(r'^\s*')
+WS_RE = re.compile(r"^\s*")
 
 
 class OpenSettings(TypedDict):
-    encoding: Literal['UTF-8']
-    newline: Literal['']
+    encoding: Literal["UTF-8"]
+    newline: Literal[""]
 
 
-OPEN_SETTINGS = OpenSettings(encoding='UTF-8', newline='')
+OPEN_SETTINGS = OpenSettings(encoding="UTF-8", newline="")
 
 
 class NullByteError(ValueError):
@@ -59,21 +59,21 @@ class NullByteError(ValueError):
 def get_lines(sio: IO[str]) -> tuple[list[str], str, bool, str]:
     sha256 = hashlib.sha256()
     lines = []
-    newlines = collections.Counter({'\n': 0})  # default to `\n`
+    newlines = collections.Counter({"\n": 0})  # default to `\n`
     for line in sio:
-        if '\0' in line:
+        if "\0" in line:
             raise NullByteError
         sha256.update(line.encode())
-        for ending in ('\r\n', '\n'):
+        for ending in ("\r\n", "\n"):
             if line.endswith(ending):
-                lines.append(line[:-1 * len(ending)])
+                lines.append(line[: -1 * len(ending)])
                 newlines[ending] += 1
                 break
         else:
             lines.append(line)
     # always make sure we end in a newline
-    lines.append('')
-    (nl, _), = newlines.most_common(1)
+    lines.append("")
+    ((nl, _),) = newlines.most_common(1)
     mixed = len({k for k, v in newlines.items() if v}) > 1
     return lines, nl, mixed, sha256.hexdigest()
 
@@ -84,23 +84,30 @@ class OpenError(RuntimeError):
 
 def _load_file(filename: str) -> tuple[list[str], str, bool, str]:
     try:
-        with open(filename, encoding='UTF-8', newline='') as f:
+        with open(filename, encoding="UTF-8", newline="") as f:
             return get_lines(f)
     except NullByteError:
-        raise OpenError(fr'error! file contains \0 bytes: {filename!r}')
+        raise OpenError(rf"error! file contains \0 bytes: {filename!r}")
     except UnicodeDecodeError:
-        raise OpenError(f'error! not utf-8: {filename!r}')
+        raise OpenError(f"error! not utf-8: {filename!r}")
     except OSError:
         # XXX: not quite correct, but maybe fix another day
-        raise OpenError(f'error! not a file: {filename!r}')
+        raise OpenError(f"error! not a file: {filename!r}")
 
 
 class Action:
     def __init__(
-            self, *, name: str, modifications: list[Modification],
-            start_x: int, start_y: int, start_modified: bool,
-            end_x: int, end_y: int, end_modified: bool,
-            final: bool,
+        self,
+        *,
+        name: str,
+        modifications: list[Modification],
+        start_x: int,
+        start_y: int,
+        start_modified: bool,
+        end_x: int,
+        end_y: int,
+        end_modified: bool,
+        final: bool,
     ):
         self.name = name
         self.modifications = modifications
@@ -114,10 +121,13 @@ class Action:
 
     def apply(self, file: File) -> Action:
         action = Action(
-            name=self.name, modifications=file.buf.apply(self.modifications),
-            start_x=self.end_x, start_y=self.end_y,
+            name=self.name,
+            modifications=file.buf.apply(self.modifications),
+            start_x=self.end_x,
+            start_y=self.end_y,
             start_modified=self.end_modified,
-            end_x=self.start_x, end_y=self.start_y,
+            end_x=self.start_x,
+            end_y=self.start_y,
             end_modified=self.start_modified,
             final=True,
         )
@@ -134,49 +144,54 @@ def action(func: FileMethod[P, R]) -> FileMethod[P, R]:
     def action_inner(self: File, *args: P.args, **kwargs: P.kwargs) -> R:
         self.finalize_previous_action()
         return func(self, *args, **kwargs)
+
     return action_inner
 
 
 def edit_action(
-        name: str,
-        *,
-        final: bool,
+    name: str,
+    *,
+    final: bool,
 ) -> Callable[[FileMethod[P, R]], FileMethod[P, R]]:
     def edit_action_decorator(func: FileMethod[P, R]) -> FileMethod[P, R]:
         @functools.wraps(func)
         def edit_action_inner(
-                self: File,
-                *args: P.args,
-                **kwargs: P.kwargs,
+            self: File,
+            *args: P.args,
+            **kwargs: P.kwargs,
         ) -> R:
             with self.edit_action_context(name, final=final):
                 return func(self, *args, **kwargs)
+
         return edit_action_inner
+
     return edit_action_decorator
 
 
 def keep_selection(func: FileMethod[P, R]) -> FileMethod[P, R]:
     @functools.wraps(func)
     def keep_selection_inner(
-            self: File,
-            *args: P.args,
-            **kwargs: P.kwargs,
+        self: File,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> R:
         with self.select():
             return func(self, *args, **kwargs)
+
     return keep_selection_inner
 
 
 def clear_selection(func: FileMethod[P, R]) -> FileMethod[P, R]:
     @functools.wraps(func)
     def clear_selection_inner(
-            self: File,
-            *args: P.args,
-            **kwargs: P.kwargs,
+        self: File,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> R:
         ret = func(self, *args, **kwargs)
         self.selection.clear()
         return ret
+
     return clear_selection_inner
 
 
@@ -187,11 +202,11 @@ class Found(NamedTuple):
 
 class _SearchIter:
     def __init__(
-            self,
-            file: File,
-            reg: Pattern[str],
-            *,
-            offset: int,
+        self,
+        file: File,
+        reg: Pattern[str],
+        *,
+        offset: int,
     ) -> None:
         self.file = file
         self.reg = reg
@@ -209,11 +224,8 @@ class _SearchIter:
         self._start_x += len(new) - match.end() - match.start()
 
     def _stop_if_past_original(self, y: int, match: Match[str]) -> Found:
-        if (
-                self.wrapped and (
-                    y > self._start_y or
-                    y == self._start_y and match.start() >= self._start_x
-                )
+        if self.wrapped and (
+            y > self._start_y or y == self._start_y and match.start() >= self._start_x
         ):
             raise StopIteration()
         return Found(y, match)
@@ -249,19 +261,19 @@ class _SearchIter:
 
 class File:
     def __init__(
-            self,
-            filename: str | None,
-            initial_line: int,
-            syntax: Syntax,
-            *,
-            is_stdin: bool,
+        self,
+        filename: str | None,
+        initial_line: int,
+        syntax: Syntax,
+        *,
+        is_stdin: bool,
     ) -> None:
         self.filename = filename
         self.initial_line = initial_line
         self.is_stdin = is_stdin
         self.modified = False
         self.buf = Buf([])
-        self.nl = '\n'
+        self.nl = "\n"
         self.sha256: str | None = None
         self._in_edit_action = False
         self.undo_stack: list[Action] = []
@@ -275,16 +287,16 @@ class File:
         self._file_hls: tuple[FileHL, ...] = ()
 
     def ensure_loaded(
-            self,
-            status: Status,
-            dim: Dim,
-            stdin: str,
+        self,
+        status: Status,
+        dim: Dim,
+        stdin: str,
     ) -> None:
         if self.buf:
             return
 
         if self.is_stdin:
-            status.update('(from stdin)')
+            status.update("(from stdin)")
             self.is_stdin = False
             self.filename = None
             self.modified = True
@@ -296,16 +308,16 @@ class File:
             except OpenError as e:
                 status.update(str(e))
                 self.filename = None
-                lines, self.nl, mixed, self.sha256 = get_lines(io.StringIO(''))
+                lines, self.nl, mixed, self.sha256 = get_lines(io.StringIO(""))
         else:
             if self.filename is not None:
-                status.update('(new file)')
-            lines, self.nl, mixed, self.sha256 = get_lines(io.StringIO(''))
+                status.update("(new file)")
+            lines, self.nl, mixed, self.sha256 = get_lines(io.StringIO(""))
 
         self.buf = Buf(lines, self.buf.tab_size)
 
         if mixed:
-            status.update(f'mixed newlines will be converted to {self.nl!r}')
+            status.update(f"mixed newlines will be converted to {self.nl!r}")
             self.modified = True
 
         self._initialize_highlighters()
@@ -351,7 +363,7 @@ class File:
             self._initialize_highlighters()
 
     def __repr__(self) -> str:
-        return f'<{type(self).__name__} {self.filename!r}>'
+        return f"<{type(self).__name__} {self.filename!r}>"
 
     def reset_modified_state(self) -> None:
         for stack in (self.undo_stack, self.redo_stack):
@@ -403,11 +415,9 @@ class File:
             self.buf.right(dim)
         # if we're at the end of the line, jump forward to the next non-ws
         elif self.buf.x == len(line):
-            while (
-                    self.buf.y < len(self.buf) - 1 and (
-                        self.buf.x == len(self.buf[self.buf.y]) or
-                        self.buf[self.buf.y][self.buf.x].isspace()
-                    )
+            while self.buf.y < len(self.buf) - 1 and (
+                self.buf.x == len(self.buf[self.buf.y])
+                or self.buf[self.buf.y][self.buf.x].isspace()
             ):
                 self.buf.right(dim)
         # if we're inside the line, jump to next position that's not our type
@@ -421,11 +431,11 @@ class File:
     def ctrl_left(self, dim: Dim) -> None:
         line = self.buf[self.buf.y]
         # if we're at position 1 and it's not a space, go to the beginning
-        if self.buf.x == 1 and not line[:self.buf.x].isspace():
+        if self.buf.x == 1 and not line[: self.buf.x].isspace():
             self.buf.left(dim)
         # if we're at the beginning or it's all space up to here jump to the
         # end of the previous non-space line
-        elif self.buf.x == 0 or line[:self.buf.x].isspace():
+        elif self.buf.x == 0 or line[: self.buf.x].isspace():
             self.buf.x = 0
             while self.buf.y > 0 and self.buf.x == 0:
                 self.buf.left(dim)
@@ -461,83 +471,82 @@ class File:
 
     @action
     def search(
-            self,
-            reg: Pattern[str],
-            status: Status,
-            dim: Dim,
+        self,
+        reg: Pattern[str],
+        status: Status,
+        dim: Dim,
     ) -> None:
         search = _SearchIter(self, reg, offset=1)
         try:
             line_y, match = next(iter(search))
         except StopIteration:
-            status.update('no matches')
+            status.update("no matches")
         else:
             if line_y == self.buf.y and match.start() == self.buf.x:
-                status.update('this is the only occurrence')
+                status.update("this is the only occurrence")
             else:
                 if search.wrapped:
-                    status.update('search wrapped')
+                    status.update("search wrapped")
                 self.buf.y = line_y
                 self.buf.x = match.start()
                 self.buf.scroll_screen_if_needed(dim)
 
     @clear_selection
     def replace(
-            self,
-            screen: Screen,
-            reg: Pattern[str],
-            replace: str,
+        self,
+        screen: Screen,
+        reg: Pattern[str],
+        replace: str,
     ) -> None:
         self.finalize_previous_action()
 
         count = 0
-        res: str | PromptResult = ''
+        res: str | PromptResult = ""
         search = _SearchIter(self, reg, offset=0)
         for line_y, match in search:
             end = match.end()
             self.buf.y = line_y
             self.buf.x = match.start()
             self.buf.scroll_screen_if_needed(screen.layout.file)
-            if res != 'a':  # make `a` replace the rest of them
+            if res != "a":  # make `a` replace the rest of them
                 with self._replace_hl.region(self.buf.y, self.buf.x, end):
                     screen.draw()
-                    res = screen.quick_prompt('replace', ('yes', 'no', 'all'))
-            if res in {'y', 'a'}:
+                    res = screen.quick_prompt("replace", ("yes", "no", "all"))
+            if res in {"y", "a"}:
                 count += 1
-                with self.edit_action_context('replace', final=True):
+                with self.edit_action_context("replace", final=True):
                     replaced = match.expand(replace)
                     search.replaced(line_y, match, replaced)
                     line = screen.file.buf[line_y]
-                    if '\n' in replaced:
-                        replaced_lines = replaced.split('\n')
-                        self.buf[line_y] = (
-                            f'{line[:match.start()]}{replaced_lines[0]}'
-                        )
+                    if "\n" in replaced:
+                        replaced_lines = replaced.split("\n")
+                        self.buf[line_y] = f"{line[: match.start()]}{replaced_lines[0]}"
                         for i, ins_line in enumerate(replaced_lines[1:-1], 1):
                             self.buf.insert(line_y + i, ins_line)
                         last_insert = line_y + len(replaced_lines) - 1
                         self.buf.insert(
-                            last_insert, f'{replaced_lines[-1]}{line[end:]}',
+                            last_insert,
+                            f"{replaced_lines[-1]}{line[end:]}",
                         )
                         self.buf.y = last_insert
                         self.buf.x = 0
                         search.offset = len(replaced_lines[-1])
                     else:
                         self.buf[line_y] = (
-                            f'{line[:match.start()]}{replaced}{line[end:]}'
+                            f"{line[: match.start()]}{replaced}{line[end:]}"
                         )
                         search.offset = len(replaced)
-            elif res == 'n':
+            elif res == "n":
                 search.offset = 1
             else:
                 assert res is PromptResult.CANCELLED
                 return
 
-        if res == '':  # we never went through the loop
-            screen.status.update('no matches')
+        if res == "":  # we never went through the loop
+            screen.status.update("no matches")
         else:
-            occurrences = 'occurrence' if count == 1 else 'occurrences'
-            screen.status.update(f'replaced {count} {occurrences}')
+            occurrences = "occurrence" if count == 1 else "occurrences"
+            screen.status.update(f"replaced {count} {occurrences}")
 
     def _page_size(self, dim: Dim) -> int:
         return max(dim.height - 2, 1)
@@ -564,10 +573,7 @@ class File:
     def alt_up(self, dim: Dim) -> None:
         if self.buf.y > 0:
             offset = 1
-            while (
-                self.buf[self.buf.y - offset] == '' and
-                self.buf.y - offset - 1 >= 0
-            ):
+            while self.buf[self.buf.y - offset] == "" and self.buf.y - offset - 1 >= 0:
                 offset += 1
             if offset >= 2:
                 self.buf.y -= offset
@@ -575,8 +581,7 @@ class File:
                 self.buf.x = 0
                 return
             while (
-                self.buf[self.buf.y - offset - 1] != '' and
-                self.buf.y - offset - 1 >= 0
+                self.buf[self.buf.y - offset - 1] != "" and self.buf.y - offset - 1 >= 0
             ):
                 offset += 1
             self.buf.y -= offset
@@ -587,14 +592,14 @@ class File:
     def alt_down(self, dim: Dim) -> None:
         if self.buf.y < len(self.buf) - 1:
             offset = 0
-            while self.buf[self.buf.y + offset] != '':
+            while self.buf[self.buf.y + offset] != "":
                 offset += 1
             if offset > 1:
                 self.buf.y += offset - 1
                 self.buf.scroll_screen_if_needed(dim)
                 self.buf.x = 0
                 return
-            while self.buf[self.buf.y + offset] == '':
+            while self.buf[self.buf.y + offset] == "":
                 if self.buf.y + offset >= len(self.buf) - 1:
                     break
                 offset += 1
@@ -604,7 +609,7 @@ class File:
 
     # editing
 
-    @edit_action('backspace text', final=False)
+    @edit_action("backspace text", final=False)
     @clear_selection
     def backspace(self, dim: Dim) -> None:
         # backspace at the beginning of the file does nothing
@@ -612,9 +617,10 @@ class File:
             pass
         # backspace at the end of the file does not change the contents
         elif (
-                self.buf.y == len(self.buf) - 1 and
-                # still allow backspace if there are 2+ blank lines
-                self.buf[self.buf.y - 1] != ''
+            self.buf.y == len(self.buf) - 1
+            and
+            # still allow backspace if there are 2+ blank lines
+            self.buf[self.buf.y - 1] != ""
         ):
             self.buf.left(dim)
         # at the beginning of the line, we join the current line and
@@ -625,19 +631,20 @@ class File:
             self.buf[y - 1] += victim
         else:
             s = self.buf[self.buf.y]
-            self.buf[self.buf.y] = s[:self.buf.x - 1] + s[self.buf.x:]
+            self.buf[self.buf.y] = s[: self.buf.x - 1] + s[self.buf.x :]
             self.buf.left(dim)
 
-    @edit_action('delete text', final=False)
+    @edit_action("delete text", final=False)
     @clear_selection
     def delete(self, dim: Dim) -> None:
         if (
             # noop at end of the file
-            self.buf.y == len(self.buf) - 1 or
+            self.buf.y == len(self.buf) - 1
+            or
             # noop at end of last real line
             (
-                self.buf.y == len(self.buf) - 2 and
-                self.buf.x == len(self.buf[self.buf.y])
+                self.buf.y == len(self.buf) - 2
+                and self.buf.x == len(self.buf[self.buf.y])
             )
         ):
             pass
@@ -647,18 +654,18 @@ class File:
             self.buf[self.buf.y] += victim
         else:
             s = self.buf[self.buf.y]
-            self.buf[self.buf.y] = s[:self.buf.x] + s[self.buf.x + 1:]
+            self.buf[self.buf.y] = s[: self.buf.x] + s[self.buf.x + 1 :]
 
-    @edit_action('line break', final=False)
+    @edit_action("line break", final=False)
     @clear_selection
     def enter(self, dim: Dim) -> None:
         s = self.buf[self.buf.y]
-        self.buf[self.buf.y] = s[:self.buf.x]
-        self.buf.insert(self.buf.y + 1, s[self.buf.x:])
+        self.buf[self.buf.y] = s[: self.buf.x]
+        self.buf.insert(self.buf.y + 1, s[self.buf.x :])
         self.buf.down(dim)
         self.buf.x = 0
 
-    @edit_action('indent selection', final=True)
+    @edit_action("indent selection", final=True)
     def _indent_selection(self, dim: Dim) -> None:
         assert self.selection.start is not None
         sel_y, sel_x = self.selection.start
@@ -674,18 +681,16 @@ class File:
                     sel_x += tab_size
         self.selection.set(sel_y, sel_x, self.buf.y, self.buf.x)
 
-    @edit_action('insert tab', final=False)
+    @edit_action("insert tab", final=False)
     def _tab(self, dim: Dim) -> None:
         tab_string = self.buf.tab_string
-        if tab_string == '\t':
+        if tab_string == "\t":
             n = 1
         else:
             n = self.buf.tab_size - self.buf.x % self.buf.tab_size
             tab_string = tab_string[:n]
         line = self.buf[self.buf.y]
-        self.buf[self.buf.y] = (
-            line[:self.buf.x] + tab_string + line[self.buf.x:]
-        )
+        self.buf[self.buf.y] = line[: self.buf.x] + tab_string + line[self.buf.x :]
         self.buf.x += n
         self.buf.restore_eof_invariant()
 
@@ -698,11 +703,11 @@ class File:
     def _dedent_line(self, s: str) -> int:
         bound = min(len(s), len(self.buf.tab_string))
         i = 0
-        while i < bound and s[i] in (' ', '\t'):
+        while i < bound and s[i] in (" ", "\t"):
             i += 1
         return i
 
-    @edit_action('dedent selection', final=True)
+    @edit_action("dedent selection", final=True)
     def _dedent_selection(self, dim: Dim) -> None:
         assert self.selection.start is not None
         sel_y, sel_x = self.selection.start
@@ -717,7 +722,7 @@ class File:
                     sel_x = max(sel_x - n, 0)
         self.selection.set(sel_y, sel_x, self.buf.y, self.buf.x)
 
-    @edit_action('dedent', final=True)
+    @edit_action("dedent", final=True)
     def _dedent(self, dim: Dim) -> None:
         n = self._dedent_line(self.buf[self.buf.y])
         if n:
@@ -730,7 +735,7 @@ class File:
         else:
             self._dedent(dim)
 
-    @edit_action('cut selection', final=True)
+    @edit_action("cut selection", final=True)
     @clear_selection
     def cut_selection(self, dim: Dim) -> tuple[str, ...]:
         ret = []
@@ -755,10 +760,10 @@ class File:
 
     def cut(self, cut_buffer: tuple[str, ...]) -> tuple[str, ...]:
         # only continue a cut if the last action is a non-final cut
-        if not self._continue_last_action('cut'):
+        if not self._continue_last_action("cut"):
             cut_buffer = ()
 
-        with self.edit_action_context('cut', final=False):
+        with self.edit_action_context("cut", final=False):
             if self.buf.y == len(self.buf) - 1:
                 return cut_buffer
             else:
@@ -769,22 +774,23 @@ class File:
     def _uncut(self, cut_buffer: tuple[str, ...], dim: Dim) -> None:
         for cut_line in cut_buffer:
             line = self.buf[self.buf.y]
-            before, after = line[:self.buf.x], line[self.buf.x:]
+            before, after = line[: self.buf.x], line[self.buf.x :]
             self.buf[self.buf.y] = before + cut_line
             self.buf.insert(self.buf.y + 1, after)
             self.buf.down(dim)
             self.buf.x = 0
 
-    @edit_action('uncut', final=True)
+    @edit_action("uncut", final=True)
     @clear_selection
     def uncut(self, cut_buffer: tuple[str, ...], dim: Dim) -> None:
         self._uncut(cut_buffer, dim)
 
-    @edit_action('uncut selection', final=True)
+    @edit_action("uncut selection", final=True)
     @clear_selection
     def uncut_selection(
-            self,
-            cut_buffer: tuple[str, ...], dim: Dim,
+        self,
+        cut_buffer: tuple[str, ...],
+        dim: Dim,
     ) -> None:
         self._uncut(cut_buffer, dim)
         self.buf.up(dim)
@@ -805,15 +811,15 @@ class File:
     def _selection_lines(self) -> tuple[int, int]:
         (s_y, _), (e_y, _) = self.selection.get()
         e_y = min(e_y + 1, len(self.buf) - 1)
-        if self.buf[e_y - 1] == '':
+        if self.buf[e_y - 1] == "":
             e_y -= 1
         return s_y, e_y
 
-    @edit_action('sort', final=True)
+    @edit_action("sort", final=True)
     def sort(self, dim: Dim, reverse: bool = False) -> None:
         self._sort(dim, 0, len(self.buf) - 1, reverse=reverse)
 
-    @edit_action('sort selection', final=True)
+    @edit_action("sort selection", final=True)
     @clear_selection
     def sort_selection(self, dim: Dim, reverse: bool = False) -> None:
         s_y, e_y = self._selection_lines()
@@ -836,10 +842,10 @@ class File:
         indent = self._indent(lineno)
         ws_len = len(indent)
 
-        if line.startswith(f'{prefix} ', ws_len):
-            self.buf[lineno] = f'{indent}{line[ws_len + len(prefix) + 1:]}'
+        if line.startswith(f"{prefix} ", ws_len):
+            self.buf[lineno] = f"{indent}{line[ws_len + len(prefix) + 1 :]}"
         elif line.startswith(prefix, ws_len):
-            self.buf[lineno] = f'{indent}{line[ws_len + len(prefix):]}'
+            self.buf[lineno] = f"{indent}{line[ws_len + len(prefix) :]}"
 
         if self.buf.y == lineno and self.buf.x > ws_len:
             self.buf.x -= len(line) - len(self.buf[lineno])
@@ -848,14 +854,14 @@ class File:
         line = self.buf[lineno]
 
         if not line:
-            self.buf[lineno] = f'{prefix}'
+            self.buf[lineno] = f"{prefix}"
         else:
-            self.buf[lineno] = f'{line[:s_offset]}{prefix} {line[s_offset:]}'
+            self.buf[lineno] = f"{line[:s_offset]}{prefix} {line[s_offset:]}"
 
         if lineno == self.buf.y and self.buf.x > s_offset:
             self.buf.x += len(self.buf[lineno]) - len(line)
 
-    @edit_action('comment', final=True)
+    @edit_action("comment", final=True)
     def toggle_comment(self, prefix: str) -> None:
         if self._is_commented(self.buf.y, prefix):
             self._comment_remove(self.buf.y, prefix)
@@ -863,7 +869,7 @@ class File:
             ws_len = len(self._indent(self.buf.y))
             self._comment_add(self.buf.y, prefix, ws_len)
 
-    @edit_action('comment selection', final=True)
+    @edit_action("comment selection", final=True)
     @clear_selection
     def toggle_comment_selection(self, prefix: str) -> None:
         s_y, e_y = self._selection_lines()
@@ -880,95 +886,96 @@ class File:
         try:
             lines, nl, mixed, sha256 = _load_file(self.filename)
         except OpenError as e:
-            status.update(f'reload: {e}')
+            status.update(f"reload: {e}")
             return
 
         self.selection.clear()
         self.nl, self.sha256 = nl, sha256
-        with self.edit_action_context('reload', final=True):
+        with self.edit_action_context("reload", final=True):
             self.buf.replace_lines(lines)
             self.buf.fixup_position(dim)
 
         if mixed:
             status.update(
-                f'reloaded! (mixed newlines will be converted to {self.nl!r})',
+                f"reloaded! (mixed newlines will be converted to {self.nl!r})",
             )
         else:
             self.modified = False
             self.reset_modified_state()
-            status.update('reloaded!')
+            status.update("reloaded!")
 
     DISPATCH = {
         # movement
-        b'KEY_UP': up,
-        b'KEY_DOWN': down,
-        b'KEY_RIGHT': right,
-        b'KEY_LEFT': left,
-        b'KEY_HOME': home,
-        b'^A': home,
-        b'KEY_END': end,
-        b'^E': end,
-        b'KEY_PPAGE': page_up,
-        b'^Y': page_up,
-        b'KEY_NPAGE': page_down,
-        b'^V': page_down,
-        b'kUP5': ctrl_up,
-        b'kDN5': ctrl_down,
-        b'kRIT5': ctrl_right,
-        b'kLFT5': ctrl_left,
-        b'kHOM5': ctrl_home,
-        b'kEND5': ctrl_end,
-        b'kUP3': alt_up,
-        b'kDN3': alt_down,
+        b"KEY_UP": up,
+        b"KEY_DOWN": down,
+        b"KEY_RIGHT": right,
+        b"KEY_LEFT": left,
+        b"KEY_HOME": home,
+        b"^A": home,
+        b"KEY_END": end,
+        b"^E": end,
+        b"KEY_PPAGE": page_up,
+        b"^Y": page_up,
+        b"KEY_NPAGE": page_down,
+        b"^V": page_down,
+        b"kUP5": ctrl_up,
+        b"kDN5": ctrl_down,
+        b"kRIT5": ctrl_right,
+        b"kLFT5": ctrl_left,
+        b"kHOM5": ctrl_home,
+        b"kEND5": ctrl_end,
+        b"kUP3": alt_up,
+        b"kDN3": alt_down,
         # editing
-        b'KEY_BACKSPACE': backspace,
-        b'KEY_DC': delete,
-        b'^M': enter,
-        b'^I': tab,
-        b'KEY_BTAB': shift_tab,
+        b"KEY_BACKSPACE": backspace,
+        b"KEY_DC": delete,
+        b"^M": enter,
+        b"^I": tab,
+        b"KEY_BTAB": shift_tab,
         # selection (shift + movement)
-        b'KEY_SR': keep_selection(up),
-        b'KEY_SF': keep_selection(down),
-        b'KEY_SLEFT': keep_selection(left),
-        b'KEY_SRIGHT': keep_selection(right),
-        b'KEY_SHOME': keep_selection(home),
-        b'KEY_SEND': keep_selection(end),
-        b'KEY_SPREVIOUS': keep_selection(page_up),
-        b'KEY_SNEXT': keep_selection(page_down),
-        b'kRIT6': keep_selection(ctrl_right),
-        b'kLFT6': keep_selection(ctrl_left),
-        b'kHOM6': keep_selection(ctrl_home),
-        b'kEND6': keep_selection(ctrl_end),
-        b'kUP4': keep_selection(alt_up),
-        b'kDN4': keep_selection(alt_down),
+        b"KEY_SR": keep_selection(up),
+        b"KEY_SF": keep_selection(down),
+        b"KEY_SLEFT": keep_selection(left),
+        b"KEY_SRIGHT": keep_selection(right),
+        b"KEY_SHOME": keep_selection(home),
+        b"KEY_SEND": keep_selection(end),
+        b"KEY_SPREVIOUS": keep_selection(page_up),
+        b"KEY_SNEXT": keep_selection(page_down),
+        b"kRIT6": keep_selection(ctrl_right),
+        b"kLFT6": keep_selection(ctrl_left),
+        b"kHOM6": keep_selection(ctrl_home),
+        b"kEND6": keep_selection(ctrl_end),
+        b"kUP4": keep_selection(alt_up),
+        b"kDN4": keep_selection(alt_down),
     }
 
-    @edit_action('text', final=False)
+    @edit_action("text", final=False)
     @clear_selection
     def c(self, wch: str, dim: Dim) -> None:
         s = self.buf[self.buf.y]
-        self.buf[self.buf.y] = s[:self.buf.x] + wch + s[self.buf.x:]
+        self.buf[self.buf.y] = s[: self.buf.x] + wch + s[self.buf.x :]
         self.buf.x += len(wch)
         self.buf.restore_eof_invariant()
 
     def finalize_previous_action(self) -> None:
-        assert not self._in_edit_action, 'nested edit/movement'
+        assert not self._in_edit_action, "nested edit/movement"
         self.selection.clear()
         if self.undo_stack:
             self.undo_stack[-1].final = True
 
     def _continue_last_action(self, name: str) -> bool:
         return (
-            bool(self.undo_stack) and
-            self.undo_stack[-1].name == name and
-            not self.undo_stack[-1].final
+            bool(self.undo_stack)
+            and self.undo_stack[-1].name == name
+            and not self.undo_stack[-1].final
         )
 
     @contextlib.contextmanager
     def edit_action_context(
-            self, name: str,
-            *,
-            final: bool,
+        self,
+        name: str,
+        *,
+        final: bool,
     ) -> Generator[None]:
         continue_last = self._continue_last_action(name)
         if not continue_last and self.undo_stack:
@@ -976,7 +983,7 @@ class File:
 
         before_x, before_line = self.buf.x, self.buf.y
         before_modified = self.modified
-        assert not self._in_edit_action, f'recursive action? {name}'
+        assert not self._in_edit_action, f"recursive action? {name}"
         self._in_edit_action = True
         try:
             with self.buf.record() as modifications:
@@ -991,10 +998,13 @@ class File:
             elif modifications:
                 self.modified = True
                 action = Action(
-                    name=name, modifications=modifications,
-                    start_x=before_x, start_y=before_line,
+                    name=name,
+                    modifications=modifications,
+                    start_x=before_x,
+                    start_y=before_line,
                     start_modified=before_modified,
-                    end_x=self.buf.x, end_y=self.buf.y,
+                    end_x=self.buf.x,
+                    end_y=self.buf.y,
                     end_modified=True,
                     final=final,
                 )
@@ -1014,9 +1024,9 @@ class File:
     # positioning
 
     def move_cursor(
-            self,
-            stdscr: curses.window,
-            dim: Dim,
+        self,
+        stdscr: curses.window,
+        dim: Dim,
     ) -> None:
         stdscr.move(*self.buf.cursor_position(dim))
 

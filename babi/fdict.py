@@ -6,8 +6,8 @@ from typing import Generic
 from typing import Protocol
 from typing import TypeVar
 
-TKey = TypeVar('TKey', contravariant=True)
-TValue = TypeVar('TValue', covariant=True)
+TKey = TypeVar("TKey", contravariant=True)
+TValue = TypeVar("TValue", covariant=True)
 
 
 class FDict(Generic[TKey, TValue]):
@@ -21,7 +21,7 @@ class FDict(Generic[TKey, TValue]):
         return k in self._dct
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}({self._dct})'
+        return f"{type(self).__name__}({self._dct})"
 
     def values(self) -> Iterable[TValue]:
         return self._dct.values()

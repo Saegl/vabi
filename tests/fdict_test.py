@@ -9,7 +9,7 @@ from babi.fdict import FDict
 def test_fdict_repr():
     # mostly because this shouldn't get hit elsewhere but is uesful for
     # debugging purposes
-    assert repr(FDict({1: 2, 3: 4})) == 'FDict({1: 2, 3: 4})'
+    assert repr(FDict({1: 2, 3: 4})) == "FDict({1: 2, 3: 4})"
 
 
 def test_f_chain_map():
@@ -19,7 +19,7 @@ def test_f_chain_map():
 
     with pytest.raises(KeyError) as excinfo:
         chain_map[2]
-    k, = excinfo.value.args
+    (k,) = excinfo.value.args
     assert k == 2
 
 
