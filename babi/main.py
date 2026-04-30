@@ -37,29 +37,10 @@ def _edit(screen: Screen, stdin: str) -> EditResult:
         screen.file.move_cursor(screen.stdscr, screen.layout.file)
 
         key = screen.get_char()
-        log("Keyname", key.keyname)
-        if key.keyname in File.DISPATCH:
-            File.DISPATCH[key.keyname](screen.file, screen.layout.file)
-        elif key.keyname in Screen.DISPATCH:
-            ret = Screen.DISPATCH[key.keyname](screen)
-            if isinstance(ret, EditResult):
-                return ret
-        elif key.keyname == b"STRING":
-            log("We are last branch")
-            assert isinstance(key.wch, str), key.wch
-
-            if key.wch == "k":
-                File.up(screen.file, screen.layout.file)
-            elif key.wch == "j":
-                File.down(screen.file, screen.layout.file)
-            elif key.wch == "h":
-                File.left(screen.file, screen.layout.file)
-            elif key.wch == "l":
-                File.right(screen.file, screen.layout.file)
-            else:
-                screen.file.c(key.wch, screen.layout.file)
-        else:
-            screen.status.update(f"unknown key: {key}")
+        log("Key", key)
+        ret = screen.handle_key(key)
+        if isinstance(ret, EditResult):
+            return ret
 
 
 def c_main(

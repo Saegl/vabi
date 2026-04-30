@@ -176,6 +176,7 @@ class Screen:
         self._buffered_input: int | str | None = None
         self._retheme = False
         self._linters = tuple(tp() for tp in LINTER_TYPES)
+        self.mode = "NORMAL"
 
     @property
     def file(self) -> File:
@@ -816,7 +817,25 @@ class Screen:
     def retheme(self) -> None:
         self._command_retheme([])
 
-    DISPATCH = {
+    def set_normal(self) -> None:
+        self.mode = "NORMAL"
+
+    def set_insert(self) -> None:
+        self.mode = "INSERT"
+
+    def file_up(self) -> None:
+        self.file.up(self.layout.file)
+
+    def file_down(self) -> None:
+        self.file.down(self.layout.file)
+
+    def file_left(self) -> None:
+        self.file.left(self.layout.file)
+
+    def file_right(self) -> None:
+        self.file.right(self.layout.file)
+
+    NORMAL_KEY_DISPATCH = {
         b"RETHEME": retheme,
         b"KEY_RESIZE": resize,
         b"^_": go_to_line,
@@ -841,6 +860,45 @@ class Screen:
         b"kRIT3": lambda screen: EditResult.NEXT,
         b"^Z": background,
     }
+
+    NORMAL_CHAR_DISPATCH = {
+        "h": file_left,
+        "j": file_down,
+        "k": file_up,
+        "l": file_right,
+        "i": set_insert,
+    }
+
+    INSERT_KEY_DISPATCH = {
+        b"^[": set_normal,
+    }
+
+    def handle_key(self, key: Key) -> EditResult | None:
+        if key.keyname in File.DISPATCH:
+            File.DISPATCH[key.keyname](self.file, self.layout.file)
+            return None
+
+        if self.mode == "INSERT":
+            if key.keyname in Screen.INSERT_KEY_DISPATCH:
+                ret = Screen.INSERT_KEY_DISPATCH[key.keyname](self)
+                if isinstance(ret, EditResult):
+                    return ret
+            else:
+                assert isinstance(key.wch, str)
+                self.file.c(key.wch, self.layout.file)
+
+        elif self.mode == "NORMAL":
+            if key.keyname in Screen.NORMAL_KEY_DISPATCH:
+                ret = Screen.NORMAL_KEY_DISPATCH[key.keyname](self)
+                if isinstance(ret, EditResult):
+                    return ret
+            if key.wch in Screen.NORMAL_CHAR_DISPATCH:
+                ret = Screen.NORMAL_CHAR_DISPATCH[key.wch](self)
+                if isinstance(ret, EditResult):
+                    return ret
+        else:
+            self.status.update(f"unknown key: {key}")
+        return None
 
     @contextlib.contextmanager
     def retheme_handler(self) -> Generator[None]:
