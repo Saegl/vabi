@@ -672,21 +672,21 @@ class Screen:
             file.reload_theme(self.syntax)
 
     COMMANDS = {
-        ":qall": Command(lambda self, args: EditResult.EXIT_ALL),
-        ":qall!": Command(lambda self, args: EditResult.EXIT_ALL_FORCE),
-        ":q": Command(lambda self, args: self.quit_save_modified()),
-        ":q!": Command(lambda self, args: EditResult.EXIT),
-        ":w": Command(_command_w),
-        ":wq": Command(_command_wq),
-        ":sort": Command(_command_sort),
-        ":sort!": Command(_command_sort_bang),
-        ":tabstop": Command(_command_tabsize, nargs=1),
-        ":tabsize": Command(_command_tabsize, nargs=1),
-        ":expandtabs": Command(_command_expandtabs),
-        ":noexpandtabs": Command(_command_noexpandtabs),
-        ":comment": Command(_command_comment, nargs="?"),
-        ":reload": Command(_command_reload),
-        ":retheme": Command(_command_retheme),
+        "qall": Command(lambda self, args: EditResult.EXIT_ALL),
+        "qall!": Command(lambda self, args: EditResult.EXIT_ALL_FORCE),
+        "q": Command(lambda self, args: self.quit_save_modified()),
+        "q!": Command(lambda self, args: EditResult.EXIT),
+        "w": Command(_command_w),
+        "wq": Command(_command_wq),
+        "sort": Command(_command_sort),
+        "sort!": Command(_command_sort_bang),
+        "tabstop": Command(_command_tabsize, nargs=1),
+        "tabsize": Command(_command_tabsize, nargs=1),
+        "expandtabs": Command(_command_expandtabs),
+        "noexpandtabs": Command(_command_noexpandtabs),
+        "comment": Command(_command_comment, nargs="?"),
+        "reload": Command(_command_reload),
+        "retheme": Command(_command_retheme),
     }
 
     def command(self) -> EditResult | None:
@@ -867,6 +867,7 @@ class Screen:
         "k": file_up,
         "l": file_right,
         "i": set_insert,
+        ":": command,
     }
 
     INSERT_KEY_DISPATCH = {

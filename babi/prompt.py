@@ -169,6 +169,7 @@ class Prompt:
         b"^R": _reverse_search,
         b"^M": _submit,
         b"^C": _cancel,
+        b"^[": _cancel,
     }
 
     def _c(self, c: str) -> None:
